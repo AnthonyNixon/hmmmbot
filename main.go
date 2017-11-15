@@ -4,6 +4,7 @@ import "net/http"
 import "fmt"
 import (
 	"encoding/json"
+	"encoding/base64"
 	"time"
 	"log"
 	"io/ioutil"
@@ -12,6 +13,9 @@ import (
 	"io"
 	"golang.org/x/net/context"
 	vision "cloud.google.com/go/vision/apiv1"
+	"github.com/ChimeraCoder/anaconda"
+	"net/url"
+	"bufio"
 )
 
 type PostData struct {
@@ -33,10 +37,12 @@ func main() {
 	fmt.Printf("Using link: '%s'", link)
 
 	saveImage(link)
-	err := detectLabels("image.jpg")
+	label, err := detectLabels("image.jpg")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
+	sendTweet(label, link)
 
 }
 
@@ -113,27 +119,27 @@ func getRandomLink() string {
 	return link
 }
 
-func detectLabels(file string) error {
+func detectLabels(file string) (string, error) {
 	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	f, err := os.Open(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
 
 	image, err := vision.NewImageFromReader(f)
 	if err != nil {
-		return err
+		return "", err
 	}
 	annotations, err := client.DetectLabels(ctx, image, nil, 10)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if len(annotations) == 0 {
@@ -145,5 +151,36 @@ func detectLabels(file string) error {
 		}
 	}
 
-	return nil
+	return annotations[len(annotations)-1].Description, nil
+}
+
+func sendTweet(description string, imageUrl string) {
+	anaconda.SetConsumerKey("")
+	anaconda.SetConsumerSecret("")
+	api := anaconda.NewTwitterApi("", "")
+
+	file, err := os.Open("image.jpg")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	defer file.Close()
+	fileInfo, _ := file.Stat()
+	var size int64 = fileInfo.Size()
+	bytes := make([]byte, size)
+
+	buffer := bufio.NewReader(file)
+	_, err = buffer.Read(bytes)
+
+	encodedString := base64.StdEncoding.EncodeToString(bytes)
+	//fmt.Printf("Encoded String:\n%s\n", encodedString)
+
+	media, err := api.UploadMedia(encodedString)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	values := url.Values{}
+	values.Set("media_ids", media.MediaIDString)
+	api.PostTweet("\"" + description + "\"" + "\n", values)
 }
