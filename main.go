@@ -70,7 +70,7 @@ func saveImage(link string) {
 }
 
 func getRandomLink() string {
-	url := "https://www.reddit.com/r/hmmm/top/.json?count=20"
+	url := "https://www.reddit.com/r/hmmm/hot/.json?count=20"
 
 	redditClient := http.Client{
 		Timeout: time.Second * 2, // Maximum of 2 secs
