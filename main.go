@@ -32,6 +32,8 @@ type Listing struct {
 	} `json:"data"`
 }
 
+var phrases = []string {"This is a tweet about", "Check out this picture of", "Look, it's", "Hey, this is", "How cool,"}
+
 func main() {
 	link := getRandomLink()
 	fmt.Printf("Using link: '%s'", link)
@@ -182,5 +184,14 @@ func sendTweet(description string, imageUrl string) {
 
 	values := url.Values{}
 	values.Set("media_ids", media.MediaIDString)
-	api.PostTweet("\"" + description + "\"" + "\n", values)
+
+	middleWord := "a"
+	if description[len(description)-1:] == "s" {
+		middleWord = "some"
+	}
+
+	rand.Seed(time.Now().Unix()) // initialize global pseudo random generator
+	phrase := phrases[rand.Intn(len(phrases))]
+
+	api.PostTweet(phrase + " " + middleWord + " #" + description + "\n", values)
 }
