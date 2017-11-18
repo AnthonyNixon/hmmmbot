@@ -3,24 +3,25 @@ package main
 import "net/http"
 import "fmt"
 import (
-	"encoding/json"
+	"bufio"
 	"encoding/base64"
-	"time"
-	"log"
-	"io/ioutil"
-	"math/rand"
-	"os"
+	"encoding/json"
 	"io"
-	"golang.org/x/net/context"
+	"io/ioutil"
+	"log"
+	"math/rand"
+	"net/url"
+	"os"
+	"time"
+
 	vision "cloud.google.com/go/vision/apiv1"
 	"github.com/ChimeraCoder/anaconda"
-	"net/url"
-	"bufio"
+	"golang.org/x/net/context"
 )
 
 type PostData struct {
-	Url string `json:"url"`
-	NSFW bool `json:"over_18"`
+	Url  string `json:"url"`
+	NSFW bool   `json:"over_18"`
 }
 
 type Listing struct {
@@ -32,7 +33,7 @@ type Listing struct {
 	} `json:"data"`
 }
 
-var phrases = []string {"This is a tweet about", "Check out this picture of", "Look, it's", "Hey, this is", "How cool,"}
+var phrases = []string{"This is a tweet about", "Check out this picture of", "Look, it's", "Hey, this is", "How cool,"}
 
 func main() {
 	link := getRandomLink()
@@ -72,12 +73,11 @@ func saveImage(link string) {
 }
 
 func getRandomLink() string {
-	url := "https://www.reddit.com/r/hmmm/hot/.json?count=20"
+	url := "https://www.reddit.com/r/hmmm/hot/.json?limit=20"
 
 	redditClient := http.Client{
 		Timeout: time.Second * 2, // Maximum of 2 secs
 	}
-
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -97,7 +97,6 @@ func getRandomLink() string {
 	}
 
 	//fmt.Printf("%s", body)
-
 
 	listing1 := Listing{}
 	jsonErr := json.Unmarshal(body, &listing1)
@@ -193,5 +192,5 @@ func sendTweet(description string, imageUrl string) {
 	rand.Seed(time.Now().Unix()) // initialize global pseudo random generator
 	phrase := phrases[rand.Intn(len(phrases))]
 
-	api.PostTweet(phrase + " " + middleWord + " #" + description + "\n", values)
+	api.PostTweet(phrase+" "+middleWord+" #"+description+"\n", values)
 }
